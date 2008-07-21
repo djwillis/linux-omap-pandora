@@ -122,3 +122,7 @@ config MACH_OMAP3EVM
 config MACH_OMAP3_BEAGLE
 	bool "OMAP3 BEAGLE board"
 	depends on ARCH_OMAP3 && ARCH_OMAP34XX
+
+config MACH_OMAP3_PANDORA
+	bool "OMAP3 Pandora board"
+	depends on ARCH_OMAP3 && ARCH_OMAP34XX

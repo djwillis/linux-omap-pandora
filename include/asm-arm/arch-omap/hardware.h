@@ -342,6 +342,10 @@
 #include "board-omap3beagle.h"
 #endif
 
+#ifdef CONFIG_MACH_OMAP3_PANDORA
+#include "board-omap3pandora.h"
+#endif
+
 #ifdef CONFIG_MACH_OMAP_LDP
 #include "board-ldp.h"
 #endif

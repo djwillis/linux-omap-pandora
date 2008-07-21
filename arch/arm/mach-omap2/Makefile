@@ -58,6 +58,9 @@ obj-$(CONFIG_MACH_OMAP3EVM)		+= board-omap3evm.o \
 obj-$(CONFIG_MACH_OMAP3_BEAGLE)		+= board-omap3beagle.o \
 					   usb-musb.o usb-ehci.o \
 					   hsmmc.o
+obj-$(CONFIG_MACH_OMAP3_PANDORA)	+= board-omap3pandora.o \
+					   usb-musb.o usb-ehci.o \
+					   hsmmc.o					   
 obj-$(CONFIG_MACH_OMAP_LDP)		+= board-ldp.o \
 					   hsmmc.o \
 					   usb-musb.o
