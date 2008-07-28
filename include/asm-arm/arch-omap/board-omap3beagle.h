@@ -29,5 +29,7 @@
 #ifndef __ASM_ARCH_OMAP3_BEAGLE_H
 #define __ASM_ARCH_OMAP3_BEAGLE_H
 
+extern void omap3beagle_flash_init(void);
+
 #endif /* __ASM_ARCH_OMAP3_BEAGLE_H */
 

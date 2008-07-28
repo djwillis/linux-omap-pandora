@@ -122,6 +122,7 @@ static void __init omap3_beagle_init(void)
 	hsmmc_init();
 	usb_musb_init();
 	usb_ehci_init();
+	omap3beagle_flash_init();
 }
 
 arch_initcall(omap3_beagle_i2c_init);
