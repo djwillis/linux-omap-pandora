@@ -12,7 +12,6 @@
  * published by the Free Software Foundation.
  */
 
-
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/platform_device.h>
@@ -74,7 +73,7 @@ static struct platform_device omap3_pandora_twl4030rtc_device = {
 static void ads7846_dev_init(void)
 {
 	if (omap_request_gpio(OMAP3_PANDORA_TS_GPIO) < 0)
-		printk(KERN_ERR "can't get ads7846 pen down GPIO\n");
+		printk(KERN_ERR "Can't get ADS7846 Pen Down GPIO\n");
 
 	omap_set_gpio_direction(OMAP3_PANDORA_TS_GPIO, 1);
 
