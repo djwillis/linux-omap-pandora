@@ -29,8 +29,8 @@
 #ifndef __ASM_ARCH_OMAP3_PANDORA_H
 #define __ASM_ARCH_OMAP3_PANDORA_H
 
-#define OMAP3_PANDORA_TS_GPIO	144 /* Touch Screen */
-
+#define OMAP3_PANDORA_TS_GPIO		144 /* Touch Screen */
+#define OMAP3_PANDORA_TS_BUSY_GPIO	146 /* Touch Screen Busy */
 
 #endif /* __ASM_ARCH_OMAP3_PANDORA_H */
 
