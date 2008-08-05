@@ -25,17 +25,19 @@
 #include <linux/platform_device.h>
 #include <linux/delay.h>
 #include <linux/videodev2.h>
+#include <linux/i2c/menelaus.h>
 
 #include <media/v4l2-int-device.h>
 
 #include <asm/mach-types.h>
 
-#include <asm/arch/menelaus.h>
 #include <asm/arch/gpio.h>
 #include <asm/arch/board.h>
 
 #include <../drivers/cbus/retu.h>
 #include <../drivers/media/video/tcm825x.h>
+
+#include "board-n800.h"
 
 #if defined (CONFIG_VIDEO_TCM825X) || defined (CONFIG_VIDEO_TCM825X_MODULE)
 

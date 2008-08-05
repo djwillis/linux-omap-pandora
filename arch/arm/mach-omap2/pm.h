@@ -20,6 +20,10 @@ extern unsigned short enable_dyn_sleep;
 extern unsigned short clocks_off_while_idle;
 extern atomic_t sleep_block;
 
+extern void omap2_block_sleep(void);
+extern void omap2_allow_sleep(void);
+
+
 #ifdef CONFIG_PM_DEBUG
 extern u32 omap2_read_32k_sync_counter(void);
 extern void omap2_pm_dump(int mode, int resume, unsigned int us);
@@ -28,11 +32,11 @@ extern void pm_init_serial_console(void);
 extern void serial_console_sleep(int enable);
 extern int omap2_pm_debug;
 #else
-#define omap2_read_32k_sync_counter() 0;
-#define serial_console_sleep(enable) do; while(0)
-#define pm_init_serial_console() do; while(0)
-#define omap2_pm_dump(mode,resume,us) do; while(0)
-#define serial_console_fclk_mask(f1,f2)  do; while(0)
-#define omap2_pm_debug 0
+#define omap2_read_32k_sync_counter()		0
+#define serial_console_sleep(enable)		do {} while (0);
+#define pm_init_serial_console()		do {} while (0);
+#define omap2_pm_dump(mode, resume, us)		do {} while (0);
+#define serial_console_fclk_mask(f1, f2)		do {} while (0);
+#define omap2_pm_debug				0
 #endif /* CONFIG_PM_DEBUG */
 #endif

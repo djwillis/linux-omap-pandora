@@ -28,6 +28,7 @@
 #include <asm/mach/time.h>
 #include <asm/atomic.h>
 
+#include <asm/arch/pm.h>
 #include "pm.h"
 
 unsigned short enable_dyn_sleep;
@@ -89,7 +90,7 @@ void omap2_allow_sleep(void)
 	BUG_ON(i < 0);
 }
 
-int __init omap_pm_init(void)
+static int __init omap_pm_init(void)
 {
 	int error = -1;
 

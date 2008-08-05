@@ -40,15 +40,21 @@
 #include <asm/arch/keypad.h>
 #include <asm/arch/dma.h>
 #include <asm/arch/gpmc.h>
+#include <linux/i2c/twl4030-rtc.h>
 
 #include <asm/io.h>
 #include <asm/delay.h>
+#include <asm/arch/control.h>
+
+#include "sdram-qimonda-hyb18m512160af-6.h"
 
 #define	SDP3430_SMC91X_CS	3
 
 #define ENABLE_VAUX3_DEDICATED	0x03
 #define ENABLE_VAUX3_DEV_GRP	0x20
 
+
+#define TWL4030_MSECURE_GPIO 22
 
 static struct resource sdp3430_smc91x_resources[] = {
 	[0] = {
@@ -121,6 +127,63 @@ static struct platform_device sdp3430_kp_device = {
 };
 
 static int ts_gpio;
+
+#ifdef CONFIG_RTC_DRV_TWL4030
+static int twl4030_rtc_init(void)
+{
+	int ret = 0;
+
+	/* 3430ES2.0 doesn't have msecure/gpio-22 line connected to T2 */
+	if (is_device_type_gp() && is_sil_rev_less_than(OMAP3430_REV_ES2_0)) {
+		u32 msecure_pad_config_reg = omap_ctrl_base_get() + 0xA3C;
+		int mux_mask = 0x04;
+		u16 tmp;
+
+		ret = omap_request_gpio(TWL4030_MSECURE_GPIO);
+		if (ret < 0) {
+			printk(KERN_ERR "twl4030_rtc_init: can't"
+				"reserve GPIO:%d !\n", TWL4030_MSECURE_GPIO);
+			goto out;
+		}
+		/*
+		 * TWL4030 will be in secure mode if msecure line from OMAP
+		 * is low. Make msecure line high in order to change the
+		 * TWL4030 RTC time and calender registers.
+		 */
+		omap_set_gpio_direction(TWL4030_MSECURE_GPIO, 0);
+
+		tmp = omap_readw(msecure_pad_config_reg);
+		tmp &= 0xF8; /* To enable mux mode 03/04 = GPIO_RTC */
+		tmp |= mux_mask;/* To enable mux mode 03/04 = GPIO_RTC */
+		omap_writew(tmp, msecure_pad_config_reg);
+
+		omap_set_gpio_dataout(TWL4030_MSECURE_GPIO, 1);
+	}
+out:
+	return ret;
+}
+
+static void twl4030_rtc_exit(void)
+{
+	if (is_device_type_gp() &&
+			is_sil_rev_less_than(OMAP3430_REV_ES2_0)) {
+		omap_free_gpio(TWL4030_MSECURE_GPIO);
+	}
+}
+
+static struct twl4030rtc_platform_data sdp3430_twl4030rtc_data = {
+	.init = &twl4030_rtc_init,
+	.exit = &twl4030_rtc_exit,
+};
+
+static struct platform_device sdp3430_twl4030rtc_device = {
+	.name = "twl4030_rtc",
+	.id = -1,
+	.dev = {
+	.platform_data = &sdp3430_twl4030rtc_data,
+	},
+};
+#endif
 
 /**
  * @brief ads7846_dev_init : Requests & sets GPIO line for pen-irq
@@ -212,6 +275,9 @@ static struct platform_device *sdp3430_devices[] __initdata = {
 	&sdp3430_smc91x_device,
 	&sdp3430_kp_device,
 	&sdp3430_lcd_device,
+#ifdef CONFIG_RTC_DRV_TWL4030
+	&sdp3430_twl4030rtc_device,
+#endif
 };
 
 static inline void __init sdp3430_init_smc91x(void)
@@ -248,7 +314,7 @@ static inline void __init sdp3430_init_smc91x(void)
 
 static void __init omap_3430sdp_init_irq(void)
 {
-	omap2_init_common_hw();
+	omap2_init_common_hw(hyb18m512160af6_sdrc_params);
 	omap_init_irq();
 	omap_gpio_init();
 	sdp3430_init_smc91x();
@@ -299,6 +365,7 @@ static void __init omap_3430sdp_init(void)
 				ARRAY_SIZE(sdp3430_spi_board_info));
 	ads7846_dev_init();
 	sdp3430_flash_init();
+	twl4030_bci_battery_init();
 	omap_serial_init();
 	usb_musb_init();
 	usb_ehci_init();

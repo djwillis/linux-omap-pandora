@@ -84,6 +84,8 @@
 #define STAT_CLEAR		0xFFFFFFFF
 #define INIT_STREAM_CMD		0x00000000
 #define DUAL_VOLT_OCR_BIT	7
+#define SRC			(1 << 25)
+#define SRD			(1 << 26)
 
 #define OMAP_MMC1_DEVID		1
 #define OMAP_MMC2_DEVID		2
@@ -300,6 +302,7 @@ static void mmc_dma_cleanup(struct mmc_omap_host *host)
 static irqreturn_t mmc_omap_irq(int irq, void *dev_id)
 {
 	struct mmc_omap_host *host = dev_id;
+	struct mmc_data *data;
 	int end_cmd = 0, end_trans = 0, status;
 
 	if (host->cmd == NULL && host->data == NULL) {
@@ -308,6 +311,7 @@ static irqreturn_t mmc_omap_irq(int irq, void *dev_id)
 		return IRQ_HANDLED;
 	}
 
+	data = host->data;
 	status = OMAP_HSMMC_READ(host->base, STAT);
 	dev_dbg(mmc_dev(host->mmc), "IRQ Status is %x\n", status);
 
@@ -315,10 +319,16 @@ static irqreturn_t mmc_omap_irq(int irq, void *dev_id)
 		if ((status & CMD_TIMEOUT) ||
 			(status & CMD_CRC)) {
 			if (host->cmd) {
-				if (status & CMD_TIMEOUT)
+				if (status & CMD_TIMEOUT) {
+					OMAP_HSMMC_WRITE(host->base, SYSCTL,
+						OMAP_HSMMC_READ(host->base,
+								SYSCTL) | SRC);
+					while (OMAP_HSMMC_READ(host->base,
+								SYSCTL) & SRC) ;
 					host->cmd->error = -ETIMEDOUT;
-				else
+				} else {
 					host->cmd->error = -EILSEQ;
+				}
 				end_cmd = 1;
 			}
 			if (host->data)
@@ -349,7 +359,7 @@ static irqreturn_t mmc_omap_irq(int irq, void *dev_id)
 	if (end_cmd || (status & CC))
 		mmc_omap_cmd_done(host, host->cmd);
 	if (end_trans || (status & TC))
-		mmc_omap_xfer_done(host, host->data);
+		mmc_omap_xfer_done(host, data);
 
 	return IRQ_HANDLED;
 }
@@ -429,8 +439,12 @@ static void mmc_omap_detect(struct work_struct *work)
 				host->mmc->ios.vdd = vdd;
 		}
 		mmc_detect_change(host->mmc, (HZ * 200) / 1000);
-	} else
+	} else {
+		OMAP_HSMMC_WRITE(host->base, SYSCTL,
+			OMAP_HSMMC_READ(host->base, SYSCTL) | SRD);
+		while (OMAP_HSMMC_READ(host->base, SYSCTL) & SRD) ;
 		mmc_detect_change(host->mmc, (HZ * 50) / 1000);
+	}
 }
 
 /*
@@ -750,23 +764,27 @@ static int __init omap_mmc_probe(struct platform_device *pdev)
 	if (IS_ERR(host->iclk)) {
 		ret = PTR_ERR(host->iclk);
 		host->iclk = NULL;
-		goto err;
+		goto err1;
 	}
 	host->fclk = clk_get(&pdev->dev, "mmchs_fck");
 	if (IS_ERR(host->fclk)) {
 		ret = PTR_ERR(host->fclk);
 		host->fclk = NULL;
 		clk_put(host->iclk);
-		goto err;
+		goto err1;
 	}
 
-	if (clk_enable(host->fclk) != 0)
-		goto err;
+	if (clk_enable(host->fclk) != 0) {
+		clk_put(host->iclk);
+		clk_put(host->fclk);
+		goto err1;
+	}
 
 	if (clk_enable(host->iclk) != 0) {
 		clk_disable(host->fclk);
+		clk_put(host->iclk);
 		clk_put(host->fclk);
-		goto err;
+		goto err1;
 	}
 
 	host->dbclk = clk_get(&pdev->dev, "mmchsdb_fck");
@@ -859,12 +877,6 @@ static int __init omap_mmc_probe(struct platform_device *pdev)
 
 	return 0;
 
-err:
-	dev_dbg(mmc_dev(host->mmc), "Probe Failed\n");
-	if (host)
-		mmc_free_host(mmc);
-	return ret;
-
 irq_err:
 	dev_dbg(mmc_dev(host->mmc), "Unable to configure MMC IRQs\n");
 	clk_disable(host->fclk);
@@ -876,6 +888,11 @@ irq_err:
 		clk_put(host->dbclk);
 	}
 
+err1:
+	iounmap(host->base);
+err:
+	dev_dbg(mmc_dev(host->mmc), "Probe Failed\n");
+	release_mem_region(res->start, res->end - res->start + 1);
 	if (host)
 		mmc_free_host(mmc);
 	return ret;
@@ -904,6 +921,7 @@ static int omap_mmc_remove(struct platform_device *pdev)
 		}
 
 		mmc_free_host(host->mmc);
+		iounmap(host->base);
 	}
 
 	return 0;

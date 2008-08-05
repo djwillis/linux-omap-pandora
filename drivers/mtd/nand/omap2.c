@@ -696,7 +696,11 @@ static int __devinit omap_nand_probe(struct platform_device *pdev)
 	err = parse_mtd_partitions(&info->mtd, part_probes, &info->parts, 0);
 	if (err > 0)
 		add_mtd_partitions(&info->mtd, info->parts, err);
+<<<<<<< HEAD:drivers/mtd/nand/omap2.c
 	else if (err <= 0 && pdata->parts)
+=======
+	else if (pdata->parts)
+>>>>>>> 040378c1b24ace3b8945318a8c24ef218200912c:drivers/mtd/nand/omap2.c
 		add_mtd_partitions(&info->mtd, pdata->parts, pdata->nr_parts);
 	else
 #endif
