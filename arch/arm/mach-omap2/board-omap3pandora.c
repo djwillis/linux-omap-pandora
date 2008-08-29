@@ -38,6 +38,7 @@
 #include <asm/arch/common.h>
 #include <asm/arch/mcspi.h>
 
+#include "sdram-micron-mt46h32m32lf-6.h"
 
 static struct omap_uart_config omap3_pandora_uart_config __initdata = {
 	.enabled_uarts	= ((1 << 0) | (1 << 1) | (1 << 2)),
@@ -53,7 +54,7 @@ static int __init omap3_pandora_i2c_init(void)
 
 static void __init omap3_pandora_init_irq(void)
 {
-	omap2_init_common_hw();
+	omap2_init_common_hw(mt46h32m32lf6_sdrc_params);
 	omap_init_irq();
 	omap_gpio_init();
 }
