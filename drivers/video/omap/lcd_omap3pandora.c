@@ -36,48 +36,52 @@
 /* #define LCD_PANEL_QVGA              10 */
 #define LCD_PANEL_RESB              155
 
-#define LCD_XRES	 				800
-#define LCD_YRES 					480
-#define LCD_PIXCLOCK				26000 /* in kHz  */
+#define LCD_XRES			800
+#define LCD_YRES			480
+#define LCD_PIXCLOCK		36000 /* in kHz  */
 
-#define ENABLE_VDAC_DEDICATED	0x03
-#define ENABLE_VDAC_DEV_GRP	0x20
-#define ENABLE_VPLL2_DEDICATED	0x05
-#define ENABLE_VPLL2_DEV_GRP	0xE0
+#define ENABLE_VDAC_DEDICATED  0x03
+#define ENABLE_VDAC_DEV_GRP  0x20
+#define ENABLE_VPLL2_DEDICATED  0x05
+#define ENABLE_VPLL2_DEV_GRP  0xE0
 
-#define TWL_LED_LEDEN		0x00
-#define TWL_PWMA_PWMAON		0x00
-#define TWL_PWMA_PWMAOFF	0x01
+#define TWL_LED_LEDEN    0x00
+#define TWL_PWMA_PWMAON    0x00
+#define TWL_PWMA_PWMAOFF  0x01
 
 static unsigned int bklight_level;
 
 static int omap3pandora_panel_init(struct lcd_panel *panel,
-				struct omapfb_device *fbdev)
+        struct omapfb_device *fbdev)
 {
-	omap_request_gpio(LCD_PANEL_LR);
-	omap_request_gpio(LCD_PANEL_UD);
-	omap_request_gpio(LCD_PANEL_INI);
-	omap_request_gpio(LCD_PANEL_RESB);
-	/* omap_request_gpio(LCD_PANEL_QVGA); */
+  /* TODO: remove the following code and related constants
+   * if the code is really not needed */
+#if 0
+  omap_request_gpio(LCD_PANEL_LR);
+  omap_request_gpio(LCD_PANEL_UD);
+  omap_request_gpio(LCD_PANEL_INI);
+  omap_request_gpio(LCD_PANEL_RESB);
+  /* omap_request_gpio(LCD_PANEL_QVGA); */
 
-	omap_set_gpio_direction(LCD_PANEL_LR, 0);
-	omap_set_gpio_direction(LCD_PANEL_UD, 0);
-	omap_set_gpio_direction(LCD_PANEL_INI, 0);
-	omap_set_gpio_direction(LCD_PANEL_RESB, 0);
-	/* omap_set_gpio_direction(LCD_PANEL_QVGA, 0);*/
+  omap_set_gpio_direction(LCD_PANEL_LR, 0);
+  omap_set_gpio_direction(LCD_PANEL_UD, 0);
+  omap_set_gpio_direction(LCD_PANEL_INI, 0);
+  omap_set_gpio_direction(LCD_PANEL_RESB, 0);
+  /* omap_set_gpio_direction(LCD_PANEL_QVGA, 0);*/
 
-	twl4030_i2c_write_u8(TWL4030_MODULE_LED, 0x11, TWL_LED_LEDEN);
-	twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0x01, TWL_PWMA_PWMAON);
-	twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0x02, TWL_PWMA_PWMAOFF);
-	bklight_level = 100;
+  twl4030_i2c_write_u8(TWL4030_MODULE_LED, 0x11, TWL_LED_LEDEN);
+  twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0x01, TWL_PWMA_PWMAON);
+  twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0x02, TWL_PWMA_PWMAOFF);
+  bklight_level = 100;
 
-	omap_set_gpio_dataout(LCD_PANEL_RESB, 1);
-	omap_set_gpio_dataout(LCD_PANEL_INI, 1);
-	/* omap_set_gpio_dataout(LCD_PANEL_QVGA, 0); */
-	omap_set_gpio_dataout(LCD_PANEL_LR, 1);
-	omap_set_gpio_dataout(LCD_PANEL_UD, 1);
+  omap_set_gpio_dataout(LCD_PANEL_RESB, 1);
+  omap_set_gpio_dataout(LCD_PANEL_INI, 1);
+  /* omap_set_gpio_dataout(LCD_PANEL_QVGA, 0); */
+  omap_set_gpio_dataout(LCD_PANEL_LR, 1);
+  omap_set_gpio_dataout(LCD_PANEL_UD, 1);
+#endif
 
-	return 0;
+  return 0;
 }
 
 static void omap3pandora_panel_cleanup(struct lcd_panel *panel)
@@ -86,111 +90,114 @@ static void omap3pandora_panel_cleanup(struct lcd_panel *panel)
 
 static int omap3pandora_panel_enable(struct lcd_panel *panel)
 {
-	omap_set_gpio_dataout(LCD_PANEL_ENABLE_GPIO, 0);
-	return 0;
+  omap_set_gpio_dataout(LCD_PANEL_ENABLE_GPIO, 0);
+  return 0;
 }
 
 static void omap3pandora_panel_disable(struct lcd_panel *panel)
 {
-	omap_set_gpio_dataout(LCD_PANEL_ENABLE_GPIO, 1);
+  omap_set_gpio_dataout(LCD_PANEL_ENABLE_GPIO, 1);
 }
 
 static unsigned long omap3pandora_panel_get_caps(struct lcd_panel *panel)
 {
-	return 0;
+  return 0;
 }
 
 static int omap3pandora_bklight_setlevel(struct lcd_panel *panel,
-						unsigned int level)
+            unsigned int level)
 {
-	u8 c;
-	if ((level >= 0) && (level <= 100)) {
-		c = (125 * (100 - level)) / 100 + 2;
-		twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, c, TWL_PWMA_PWMAOFF);
-		bklight_level = level;
-	}
-	return 0;
+  u8 c;
+  if ((level >= 0) && (level <= 100)) {
+    c = (125 * (100 - level)) / 100 + 2;
+    twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, c, TWL_PWMA_PWMAOFF);
+    bklight_level = level;
+  }
+  return 0;
 }
 
 static unsigned int omap3pandora_bklight_getlevel(struct lcd_panel *panel)
 {
-	return bklight_level;
+  return bklight_level;
 }
 
 static unsigned int omap3pandora_bklight_getmaxlevel(struct lcd_panel *panel)
 {
-	return 100;
+  return 100;
 }
 
 struct lcd_panel omap3pandora_panel = {
-	.name		= "omap3pandora",
-	.config		= OMAP_LCDC_PANEL_TFT | OMAP_LCDC_INV_VSYNC |
-			  OMAP_LCDC_INV_HSYNC,
+  .name    = "omap3pandora",
+  .config    = OMAP_LCDC_PANEL_TFT | OMAP_LCDC_INV_VSYNC |
+        OMAP_LCDC_INV_HSYNC | OMAP_LCDC_INV_PIX_CLOCK,
 
-	.bpp		= 16,
-	.data_lines	= 18,
-	.x_res		= LCD_XRES,
-	.y_res		= LCD_YRES,
-	.hsw		= 3,		/* hsync_len (4) - 1 */
-	.hfp		= 3,		/* right_margin (4) - 1 */
-	.hbp		= 39,		/* left_margin (40) - 1 */
-	.vsw		= 1,		/* vsync_len (2) - 1 */
-	.vfp		= 2,		/* lower_margin */
-	.vbp		= 7,		/* upper_margin (8) - 1 */
+  .bpp    = 16,
+  .data_lines  = 24,
+  .x_res    = LCD_XRES,
+  .y_res    = LCD_YRES,
+  .hsw    = 1,    /* hsync_len */
+  .hfp    = 40,    /* right_margin */
+  .hbp    = 215,    /* left_margin */
+  .vsw    = 1,    /* vsync_len */
+  .vfp    = 10,    /* lower_margin */
+  .vbp    = 34,    /* upper_margin */
 
-	.pixel_clock	= LCD_PIXCLOCK,
+  .acb    = 0x28,    /* ac-bias pin frequency */
+  .pcd    = 0,    /* pixel clock divider. Unused */
 
-	.init		= omap3pandora_panel_init,
-	.cleanup	= omap3pandora_panel_cleanup,
-	.enable		= omap3pandora_panel_enable,
-	.disable	= omap3pandora_panel_disable,
-	.get_caps	= omap3pandora_panel_get_caps,
-	.set_bklight_level      = omap3pandora_bklight_setlevel,
-	.get_bklight_level      = omap3pandora_bklight_getlevel,
-	.get_bklight_max        = omap3pandora_bklight_getmaxlevel,
+  .pixel_clock  = LCD_PIXCLOCK,
+
+  .init    = omap3pandora_panel_init,
+  .cleanup  = omap3pandora_panel_cleanup,
+  .enable    = omap3pandora_panel_enable,
+  .disable  = omap3pandora_panel_disable,
+  .get_caps  = omap3pandora_panel_get_caps,
+  .set_bklight_level      = omap3pandora_bklight_setlevel,
+  .get_bklight_level      = omap3pandora_bklight_getlevel,
+  .get_bklight_max        = omap3pandora_bklight_getmaxlevel,
 };
 
 static int omap3pandora_panel_probe(struct platform_device *pdev)
 {
-	omapfb_register_panel(&omap3pandora_panel);
-	return 0;
+  omapfb_register_panel(&omap3pandora_panel);
+  return 0;
 }
 
 static int omap3pandora_panel_remove(struct platform_device *pdev)
 {
-	return 0;
+  return 0;
 }
 
 static int omap3pandora_panel_suspend(struct platform_device *pdev,
-				   pm_message_t mesg)
+           pm_message_t mesg)
 {
-	return 0;
+  return 0;
 }
 
 static int omap3pandora_panel_resume(struct platform_device *pdev)
 {
-	return 0;
+  return 0;
 }
 
 struct platform_driver omap3pandora_panel_driver = {
-	.probe		= omap3pandora_panel_probe,
-	.remove		= omap3pandora_panel_remove,
-	.suspend	= omap3pandora_panel_suspend,
-	.resume		= omap3pandora_panel_resume,
-	.driver		= {
-		.name	= "omap3pandora_lcd",
-		.owner	= THIS_MODULE,
-	},
+  .probe    = omap3pandora_panel_probe,
+  .remove    = omap3pandora_panel_remove,
+  .suspend  = omap3pandora_panel_suspend,
+  .resume    = omap3pandora_panel_resume,
+  .driver    = {
+    .name  = "omap3pandora_lcd",
+    .owner  = THIS_MODULE,
+  },
 };
 
 static int __init omap3pandora_panel_drv_init(void)
 {
-	return platform_driver_register(&omap3pandora_panel_driver);
+  return platform_driver_register(&omap3pandora_panel_driver);
 }
 
 static void __exit omap3pandora_panel_drv_exit(void)
 {
-	platform_driver_unregister(&omap3pandora_panel_driver);
+  platform_driver_unregister(&omap3pandora_panel_driver);
 }
 
 module_init(omap3pandora_panel_drv_init);
