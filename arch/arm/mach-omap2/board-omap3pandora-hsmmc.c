@@ -39,8 +39,12 @@
 #define LDO_CLR			0x00
 #define VSEL_S2_CLR		0x40
 #define GPIO_0_BIT_POS		(1 << 0)
+#define GPIO_1_BIT_POS		(1 << 1)
 #define MMC1_CD_IRQ		0
 #define MMC2_CD_IRQ		1
+
+#define VMMC2_DEV_GRP		0x2B
+#define VMMC2_DEDICATED		0x2E
 
 #define OMAP2_CONTROL_DEVCONF0	0x48002274
 #define OMAP2_CONTROL_DEVCONF1	0x490022E8
@@ -94,6 +98,40 @@ err:
 	return ret;
 }
 
+/*
+ * MMC2 Slot Initialization.
+ */
+static int hsmmc2_late_init(struct device *dev) {
+	int ret = 0;
+
+	/*
+	 * Configure TWL4030 GPIO parameters for MMC2 hotplug irq
+	 */
+	ret = twl4030_request_gpio(MMC2_CD_IRQ);
+	if (ret != 0)
+		goto err;
+
+	ret = twl4030_set_gpio_edge_ctrl(MMC2_CD_IRQ,
+			TWL4030_GPIO_EDGE_RISING | TWL4030_GPIO_EDGE_FALLING);
+	if (ret != 0)
+		goto err;
+
+	ret = twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, 0x02,
+						TWL_GPIO_PUPDCTR1);
+	if (ret != 0)
+		goto err;
+
+	ret = twl4030_set_gpio_debounce(MMC2_CD_IRQ, TWL4030_GPIO_IS_ENABLE);
+	if (ret != 0)
+		goto err;
+
+	return ret;
+err:
+	dev_err(dev, "Failed to configure TWL4030 GPIO IRQ\n");
+
+	return ret;
+}
+
 static void hsmmc_cleanup(struct device *dev)
 {
 	int ret = 0;
@@ -102,6 +140,15 @@ static void hsmmc_cleanup(struct device *dev)
 	if (ret)
 		dev_err(dev, "Failed to configure TWL4030 GPIO IRQ\n");
 }
+
+static void hsmmc2_cleanup(struct device *dev) {
+	int ret = 0;
+
+	ret = twl4030_free_gpio(MMC2_CD_IRQ);
+	if (ret != 0)
+		dev_err(dev, "Failed to configure TWL4030 GPIO IRQ\n");
+}
+
 
 #ifdef CONFIG_PM
 
@@ -148,12 +195,61 @@ static int hsmmc_suspend(struct device *dev, int slot)
 	return ret;
 }
 
+/*
+ * To mask and unmask MMC Card Detect Interrupt
+ * mask : 1
+ * unmask : 0
+ */
+static int mask_cd2_interrupt(int mask) {
+	u8 reg = 0, ret = 0;
+
+	ret = twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &reg, TWL_GPIO_IMR1A);
+	if (ret != 0)
+		goto err;
+
+	reg = (mask == 1) ? (reg | GPIO_1_BIT_POS) : (reg & ~GPIO_1_BIT_POS);
+
+	ret = twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, reg, TWL_GPIO_IMR1A);
+	if (ret != 0)
+		goto err;
+
+	ret = twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &reg, TWL_GPIO_ISR1A);
+	if (ret != 0)
+		goto err;
+
+	reg = (mask == 1) ? (reg | GPIO_1_BIT_POS) : (reg & ~GPIO_1_BIT_POS);
+
+	ret = twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, reg, TWL_GPIO_ISR1A);
+	if (ret != 0)
+		goto err;
+err:
+	return ret;
+}
+
+static int hsmmc2_suspend(struct device *dev, int slot) {
+	int ret = 0;
+
+	disable_irq(TWL4030_GPIO_IRQ_NO(MMC2_CD_IRQ));
+	ret = mask_cd2_interrupt(1);
+
+	return ret;
+}
+
 static int hsmmc_resume(struct device *dev, int slot)
 {
 	int ret = 0;
 
 	enable_irq(TWL4030_GPIO_IRQ_NO(MMC1_CD_IRQ));
 	ret = mask_cd_interrupt(0);
+
+	return ret;
+}
+
+static int hsmmc2_resume(struct device *dev, int slot) {
+	int ret = 0;
+
+	enable_irq(TWL4030_GPIO_IRQ_NO(MMC2_CD_IRQ));
+	ret = mask_cd2_interrupt(0);
 
 	return ret;
 }
@@ -263,6 +359,69 @@ err:
 	return 1;
 }
 
+static int hsmmc2_set_power(struct device *dev, int slot, int power_on, int vdd)
+{
+	u32 vdd_sel = 0, devconf = 0;
+	int ret = 0;
+
+	if (power_on == 1) {
+		if (cpu_is_omap24xx())
+			devconf = omap_readl(0x490022E8);
+		else
+			devconf = omap_readl(0x480022D8);
+
+		switch (1 << vdd) {
+		case MMC_VDD_33_34:
+		case MMC_VDD_32_33:
+			vdd_sel = VSEL_3V;
+			if (cpu_is_omap24xx())
+				devconf = (devconf | (1 << 31));
+			break;
+		case MMC_VDD_165_195:
+			vdd_sel = VSEL_18V;
+			if (cpu_is_omap24xx())
+				devconf = (devconf & ~(1 << 31));
+		}
+
+		if (cpu_is_omap24xx())
+			omap_writel(devconf, 0x490022E8);
+		else
+			omap_writel(devconf | 1 << 6, 0x480022D8);
+
+		ret = twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+						P1_DEV_GRP, VMMC2_DEV_GRP);
+		if (ret != 0)
+			goto err;
+
+		ret = twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+						0x05, VMMC2_DEDICATED);
+		if (ret != 0)
+			goto err;
+
+		return ret;
+
+	} else if (power_on == 0) {
+
+		/* Power OFF */
+		ret = twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+						LDO_CLR, VMMC2_DEV_GRP);
+		if (ret != 0)
+			goto err;
+
+		ret = twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+						VSEL_S2_CLR, VMMC2_DEDICATED);
+		if (ret != 0)
+			goto err;
+	} else {
+		ret = -1;
+		goto err;
+	}
+
+	return 0;
+err:
+	return 1;
+}
+
 static int hsmmc_switch_slot(struct device *dev, int slot)
 {
 #ifdef CONFIG_MMC_DEBUG
@@ -276,8 +435,8 @@ static int hsmmc_switch_slot(struct device *dev, int slot)
 }
 
 static struct omap_mmc_platform_data hsmmc_data = {
-	.nr_slots			= 2,
-	.switch_slot		= hsmmc_switch_slot,
+	.nr_slots			= 1,
+	.switch_slot		= NULL,
 	.init				= hsmmc_late_init,
 	.cleanup			= hsmmc_cleanup,
 #ifdef CONFIG_PM
@@ -291,22 +450,29 @@ static struct omap_mmc_platform_data hsmmc_data = {
 		.get_cover_state	= NULL,
 		.ocr_mask		= MMC_VDD_32_33 | MMC_VDD_33_34 |
 						MMC_VDD_165_195,
-		.name			= "Card Slot 1",
+		.name			= "mmcblk1",
 
 		.card_detect_irq        = TWL4030_GPIO_IRQ_NO(MMC1_CD_IRQ),
 		.card_detect            = hsmmc_card_detect,
 	},
-	.slots[1] = {
-		.set_power	= hsmmc_set_power,
+};
+
+static struct omap_mmc_platform_data hsmmc2_data = {
+	.nr_slots			= 1,
+	.switch_slot		= NULL,
+	.init				= hsmmc2_late_init,
+	.cleanup			= hsmmc2_cleanup,
+#ifdef CONFIG_PM
+	.suspend			= hsmmc2_suspend,
+	.resume				= hsmmc2_resume,
+#endif
+	.slots[0] = {
+		.set_power		= hsmmc2_set_power,
 		.set_bus_mode		= NULL,
 		.get_ro			= NULL,
 		.get_cover_state	= NULL,
-		.ocr_mask	= MMC_VDD_165_195 | MMC_VDD_20_21 |
-				  MMC_VDD_21_22 | MMC_VDD_22_23 | MMC_VDD_23_24 |
-				  MMC_VDD_24_25 | MMC_VDD_27_28 | MMC_VDD_28_29 |
-				  MMC_VDD_29_30 | MMC_VDD_30_31 | MMC_VDD_32_33 |
-				  MMC_VDD_33_34,
-		.name		= "Card Slot 2",
+		.ocr_mask		= MMC_VDD_165_195,
+		.name			= "mmcblk2",
 
 		.card_detect_irq        = TWL4030_GPIO_IRQ_NO(MMC2_CD_IRQ),
 		.card_detect            = hsmmc_card_detect,
@@ -316,6 +482,7 @@ static struct omap_mmc_platform_data hsmmc_data = {
 void __init hsmmc_init(void)
 {
 	omap_set_mmc_info(1, &hsmmc_data);
+	omap_set_mmc_info(2, &hsmmc2_data);
 }
 
 #else
