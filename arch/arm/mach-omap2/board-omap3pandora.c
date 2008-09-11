@@ -313,42 +313,6 @@ static void __init omap3_pandora_init(void)
 	usb_ehci_init();
 	ads7846_dev_init();
 	omap3pandora_flash_init();
-
-	/*
-	if ((gpio_request(OMAP3_PANDORA_W2W_NRESET_GPIO,
-		"OMAP3_PANDORA_W2W_NRESET_GPIO") == 0) &&
-			(gpio_direction_output(OMAP3_PANDORA_W2W_NRESET_GPIO, 1) == 0)) {
-				gpio_export(OMAP3_PANDORA_W2W_NRESET_GPIO, 0);
-				gpio_set_value(OMAP3_PANDORA_W2W_NRESET_GPIO, 0);
-				udelay(10);
-				gpio_set_value(OMAP3_PANDORA_W2W_NRESET_GPIO, 1);
-	} else {
-                  printk(KERN_ERR "could not obtain gpio for OMAP3_PANDORA_W2W_NRESET_GPIO\n");
-          }
-
-          if ((gpio_request(OMAP3_PANDORA_BT_NRESET_GPIO, "OMAP3_PANDORA_BT_NRESET_GPIO") == 0) &&
-              (gpio_direction_output(OMAP3_PANDORA_BT_NRESET_GPIO, 1) == 0)) {
-                  gpio_export(OMAP3_PANDORA_BT_NRESET_GPIO, 0);
-                  gpio_set_value(OMAP3_PANDORA_BT_NRESET_GPIO, 0);
-                  mdelay(6);
-                  gpio_set_value(OMAP3_PANDORA_BT_NRESET_GPIO, 1);
-          } else {
-                  printk(KERN_ERR "could not obtain gpio for OMAP3_PANDORA_BT_NRESET_GPIO\n");
-          }
-
-          if ((gpio_request(OMAP3_PANDORA_USBH_CPEN_GPIO, "OMAP3_PANDORA_USBH_CPEN_GPIO") == 0) &&
-              (gpio_direction_output(OMAP3_PANDORA_USBH_CPEN_GPIO, 1) == 0))
-                  gpio_export(OMAP3_PANDORA_USBH_CPEN_GPIO, 0);
-          else
-                  printk(KERN_ERR "could not obtain gpio for OMAP3_PANDORA_USBH_CPEN_GPIO\n");
-
-          if ((gpio_request(OMAP3_PANDORA_USBH_NRESET_GPIO,
-                            "OMAP3_PANDORA_USBH_NRESET_GPIO") == 0) &&
-              (gpio_direction_output(OMAP3_PANDORA_USBH_NRESET_GPIO, 1) == 0))
-                  gpio_export(OMAP3_PANDORA_USBH_NRESET_GPIO, 0);
-          else
-                  printk(KERN_ERR "could not obtain gpio for OMAP3_PANDORA_USBH_NRESET_GPIO\n");
-	*/
 }
 
 static void __init omap3_pandora_map_io(void)
@@ -358,7 +322,7 @@ static void __init omap3_pandora_map_io(void)
 }
 
 MACHINE_START(OMAP3_PANDORA, "Pandora Handheld Console")
-	/* Maintainer: John Willis - http://www.openpandora.org */
+	/* Maintainer: John Willis (source@distant-earth.com) - http://www.openpandora.org */
 	.phys_io	= 0x48000000,
 	.io_pg_offst	= ((0xd8000000) >> 18) & 0xfffc,
 	.boot_params	= 0x80000100,
