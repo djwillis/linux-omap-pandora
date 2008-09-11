@@ -48,7 +48,10 @@
  * 		to get the PHY state machine in working state
  */
 #define EXTERNAL_PHY_RESET
-#define	EXT_PHY_RESET_GPIO_PORT1	(57)
+
+// #define	EXT_PHY_RESET_GPIO_PORT1	(57)
+// TODO: Pandora: Ifdef this out? Will that get kicked by Linux-OMAP, guess so.
+#define	EXT_PHY_RESET_GPIO_PORT1	(147)
 #define	EXT_PHY_RESET_GPIO_PORT2	(61)
 #define	EXT_PHY_RESET_DELAY		(10)
 
@@ -57,7 +60,8 @@
  * Use the VBUS from Port1 to power VBUS of Port2 externally
  * So use Port2 as the working ULPI port
  */
-#define VBUS_INTERNAL_CHARGEPUMP_HACK
+// TODO: Pandora: Ifdef this out? Will that get kicked by Linux-OMAP, guess so.
+//#define VBUS_INTERNAL_CHARGEPUMP_HACK
 
 #endif /* CONFIG_OMAP_EHCI_PHY_MODE */
 

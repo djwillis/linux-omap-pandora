@@ -153,8 +153,10 @@ void __init usb_ehci_init(void)
 {
 #if     defined(CONFIG_USB_EHCI_HCD) || defined(CONFIG_USB_EHCI_HCD_MODULE)
 	/* Setup Pin IO MUX for EHCI */
-	if (cpu_is_omap34xx())
-		setup_ehci_io_mux();
+
+//TODO: Pandora - Hmmm, clean this hack up neatly.
+//	if (cpu_is_omap34xx())
+//		setup_ehci_io_mux();
 
 	if (platform_device_register(&ehci_device) < 0) {
 		printk(KERN_ERR "Unable to register HS-USB (EHCI) device\n");
